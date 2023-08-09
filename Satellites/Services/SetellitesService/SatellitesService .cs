@@ -27,7 +27,7 @@ namespace Satellites.Services.SettelitesService
             _logger = logger;
         }
 
-        public async Task<IEnumerable<Member>> GetSettelitesData()
+        public async Task<LinkedList<Member>> GetSettelitesData()
         {
             int pageSize = _options.PageSize;
             int batchSize = _options.ParallelRequestsBatchSize;
@@ -36,19 +36,21 @@ namespace Satellites.Services.SettelitesService
 
             var itemsList = new LinkedList<Member>();
 
-            //int pageCount = (int)Math.Ceiling((double)itemsCount / pageSize);
-            int pageCount = 12;
+            int pageCount = (int)Math.Ceiling((double)itemsCount / pageSize);
+
 
             int batchCount = (int)Math.Ceiling((double)pageCount / batchSize);
 
             _logger?.LogInformation("Downloading started");
+
             for (int i = 1; i <= pageCount; i += batchSize)
             {
+                if (i + batchSize > pageCount)
+                    batchSize = pageCount - i + 1;
+
                 var items = await GetPagesParalelly(i, i + batchSize - 1, 100);
 
-                _logger?.LogInformation($"{ ((double)(i + batchSize - 1) / pageCount).ToString("0.00%") } Done");
-
-                Thread.Sleep(500);
+                _logger?.LogInformation($"{ ((double)(i + batchSize - 1) / pageCount).ToString("0.00%") } Done");                
 
                 itemsList.Concat(items);
             }                           
@@ -66,7 +68,9 @@ namespace Satellites.Services.SettelitesService
             {
                 tasks.Add(GetPageOfitems(i, pageSize));
             }
-            
+
+            _logger?.LogInformation($"{tasks.Count} requests started");
+
             var responses = await Task.WhenAll(tasks);
 
             var dataItems = responses.SelectMany(x => x);

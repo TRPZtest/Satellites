@@ -35,8 +35,7 @@ namespace Satellites.Services.ServiceRest
         }
 
         protected async Task<ResponseWrapper<T>> GetAsync<T>(string url)
-        {   
-            Console.WriteLine("Get started " + count++);
+        {               
             var request = new HttpRequestMessage(HttpMethod.Get, url);
 
             var response = await _httpClient.SendAsync(request);
