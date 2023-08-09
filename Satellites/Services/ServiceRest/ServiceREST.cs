@@ -1,6 +1,8 @@
 ﻿using Microsoft.Extensions.Logging;
+using Satellites.Helpers;
 using System;
 using System.Collections.Generic;
+using System.Collections.Specialized;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
@@ -12,7 +14,8 @@ namespace Satellites.Services.ServiceRest
     public class ServiceREST : IDisposable
     {
         private readonly HttpClient _httpClient;
-        private readonly ILogger? _logger;       
+        private readonly ILogger? _logger;    
+        int count = 0;
 
         public ServiceREST(HttpClient httpClient) 
         {
@@ -26,17 +29,23 @@ namespace Satellites.Services.ServiceRest
 
         }
 
-        protected async Task<T> GetAsync<T>(string url)
+        protected async Task<ResponseWrapper<T>> GetAsync<T>(string url, NameValueCollection queryParameters)
         {
+            return await GetAsync<T>(url + queryParameters.ToQueryString(true));
+        }
+
+        protected async Task<ResponseWrapper<T>> GetAsync<T>(string url)
+        {   
+            Console.WriteLine("Get started " + count++);
             var request = new HttpRequestMessage(HttpMethod.Get, url);
 
             var response = await _httpClient.SendAsync(request);
 
-            checkHttpCode(response);
+            response.EnsureSuccessStatusCode();
 
             var contentString = await response.Content.ReadAsStringAsync();
 
-            var  responseObj = JsonSerializer.Deserialize<T>(contentString);
+            var  responseObj = new ResponseWrapper<T>() { ResponseDto = JsonSerializer.Deserialize<T>(contentString), IsSuccesStatusCode = response.IsSuccessStatusCode };
 
             return responseObj;
         }

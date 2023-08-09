@@ -1,9 +1,11 @@
 ﻿using Microsoft.Extensions.Logging;
 using Satellites.Helpers;
 using Satellites.Services.ServiceRest;
+using Satellites.Services.SetellitesService;
 using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
+using System.Drawing;
 using System.Dynamic;
 using System.Linq;
 using System.Text;
@@ -13,38 +15,82 @@ using System.Web;
 namespace Satellites.Services.SettelitesService
 {
     public class SatellitesService : ServiceREST
-    {
+    {               
         private readonly string _url;
+        private readonly SatelliteServiceOptions _options;
+        private readonly ILogger? _logger;
 
-        public SatellitesService(string serviceUrl, HttpClient httpClient, ILogger? logger = null) : base(httpClient, logger) 
+        public SatellitesService(SatelliteServiceOptions options, HttpClient httpClient, ILogger? logger = null) : base(httpClient, logger) 
         {
-            _url = serviceUrl;    
+            _url = options.Url;    
+            _options = options;           
+            _logger = logger;
         }
 
-        //public async Task<IEnumerable<Member>> GetSettelitesData()
-        //{
-        //    const int pageSize = 100;
+        public async Task<IEnumerable<Member>> GetSettelitesData()
+        {
+            int pageSize = _options.PageSize;
+            int batchSize = _options.ParallelRequestsBatchSize;
 
-        //    var queryParameters = new NameValueCollection();
-        //    queryParameters.Add("page-size", "1");
+            var itemsCount = await GetItemsCount();
 
-        //    var queryString = queryParameters.ToQueryString(true);
+            var itemsList = new LinkedList<Member>();
 
-        //    var response = await GetAsync<SetelliteServiceResponse>(_url + queryString);
+            //int pageCount = (int)Math.Ceiling((double)itemsCount / pageSize);
+            int pageCount = 12;
 
-        //    return response.TotalItems
-        //}
+            int batchCount = (int)Math.Ceiling((double)pageCount / batchSize);
 
-        public async Task<int> GetItemsNumber()
+            _logger?.LogInformation("Downloading started");
+            for (int i = 1; i <= pageCount; i += batchSize)
+            {
+                var items = await GetPagesParalelly(i, i + batchSize - 1, 100);
+
+                _logger?.LogInformation($"{ ((double)(i + batchSize - 1) / pageCount).ToString("0.00%") } Done");
+
+                Thread.Sleep(500);
+
+                itemsList.Concat(items);
+            }                           
+
+            return itemsList;
+        }
+
+        private async Task<Member[]> GetPagesParalelly(int pageStart, int pageEnd, int pageSize)
+        {
+            var pageCount = pageEnd - pageStart + 1;
+
+            var tasks = new List<Task<IEnumerable<Member>>>(pageCount);
+
+            for (int i = pageStart; i <= pageEnd; i++)
+            {
+                tasks.Add(GetPageOfitems(i, pageSize));
+            }
+            
+            var responses = await Task.WhenAll(tasks);
+
+            var dataItems = responses.SelectMany(x => x);
+
+            return dataItems.ToArray();
+        }
+
+        private async Task<IEnumerable<Member>> GetPageOfitems(int pageNumber, int pageSize)
         {
             var queryParameters = new NameValueCollection();
-            queryParameters.Add("page-size", "1");
+            queryParameters.Add("page-size", pageSize.ToString());
+            queryParameters.Add("page", pageNumber.ToString());
 
-            var queryString = queryParameters.ToQueryString(true);
-
-            var response = await GetAsync<SetelliteServiceResponse>(_url + queryString);
-            return response.TotalItems;
+            var response = await GetAsync<SetelliteServiceResponse>(_url, queryParameters);
+            return response.ResponseDto.Member;
         }
 
+        private async Task<int> GetItemsCount()
+        {
+            var queryParameters = new NameValueCollection();
+            queryParameters.Add("page-size", "1");           
+
+            var response = await GetAsync<SetelliteServiceResponse>(_url, queryParameters);
+            return response.ResponseDto.TotalItems;
+        }
     }
 }
