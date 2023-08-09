@@ -8,6 +8,8 @@ using System.Collections.Specialized;
 using System.Drawing;
 using System.Dynamic;
 using System.Linq;
+using System.Net;
+using System.Security.AccessControl;
 using System.Text;
 using System.Threading.Tasks;
 using System.Web;
@@ -36,8 +38,9 @@ namespace Satellites.Services.SettelitesService
 
             var itemsList = new LinkedList<Member>();
 
-            int pageCount = (int)Math.Ceiling((double)itemsCount / pageSize);
+            //int pageCount = (int)Math.Ceiling((double)itemsCount / pageSize);
 
+            var pageCount = 327;
 
             int batchCount = (int)Math.Ceiling((double)pageCount / batchSize);
 
@@ -84,7 +87,8 @@ namespace Satellites.Services.SettelitesService
             queryParameters.Add("page-size", pageSize.ToString());
             queryParameters.Add("page", pageNumber.ToString());
 
-            var response = await GetAsync<SetelliteServiceResponse>(_url, queryParameters);
+            var response = await GetAsyncDecorator<SetelliteServiceResponse>(_url, queryParameters);
+
             return response.ResponseDto.Member;
         }
 
@@ -93,8 +97,27 @@ namespace Satellites.Services.SettelitesService
             var queryParameters = new NameValueCollection();
             queryParameters.Add("page-size", "1");           
 
-            var response = await GetAsync<SetelliteServiceResponse>(_url, queryParameters);
+            var response = await GetAsyncDecorator<SetelliteServiceResponse>(_url, queryParameters);
             return response.ResponseDto.TotalItems;
+        }
+
+        private void checkResponse(HttpStatusCode statusCode)
+        {
+            if (statusCode == HttpStatusCode.TooManyRequests) 
+            {
+                var errorMessage = $"{statusCode}, please try later!";
+                _logger?.LogError(errorMessage);
+                throw new Exception(errorMessage);
+            }
+        }
+
+        protected async Task<ResponseWrapper<T>> GetAsyncDecorator<T>(string url, NameValueCollection queryParameters)
+        {
+            var response = await GetAsync<T>(url + queryParameters.ToQueryString(true));
+
+            checkResponse(response.StatusCode);
+
+            return response;
         }
     }
 }

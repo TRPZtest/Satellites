@@ -28,23 +28,22 @@ namespace Satellites.Services.ServiceRest
             _logger = logger;
 
         }
-
-        protected async Task<ResponseWrapper<T>> GetAsync<T>(string url, NameValueCollection queryParameters)
-        {
-            return await GetAsync<T>(url + queryParameters.ToQueryString(true));
-        }
-
+     
         protected async Task<ResponseWrapper<T>> GetAsync<T>(string url)
         {               
             var request = new HttpRequestMessage(HttpMethod.Get, url);
 
-            var response = await _httpClient.SendAsync(request);
-
-            response.EnsureSuccessStatusCode();
+            var response = await _httpClient.SendAsync(request);          
 
             var contentString = await response.Content.ReadAsStringAsync();
 
-            var  responseObj = new ResponseWrapper<T>() { ResponseDto = JsonSerializer.Deserialize<T>(contentString), IsSuccesStatusCode = response.IsSuccessStatusCode };
+            var  responseObj = new ResponseWrapper<T>() 
+            { 
+                ResponseDto = 
+                JsonSerializer.Deserialize<T>(contentString), 
+                IsSuccesStatusCode = response.IsSuccessStatusCode,
+                StatusCode = response.StatusCode
+            };
 
             return responseObj;
         }
