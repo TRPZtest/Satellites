@@ -14,18 +14,6 @@ IConfiguration config = configBuilder.Build();
 using ILoggerFactory loggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
 ILogger logger = loggerFactory.CreateLogger<SatellitesService>();
 
-
-
-//var watch = new System.Diagnostics.Stopwatch();
-
-//watch.Start();
-
-//Console.WriteLine(items.Count());
-
-//watch.Stop();
-
-//Console.WriteLine($"Execution Time: {watch.ElapsedMilliseconds} ms");
-
 var app = new Application();
 
 var applicationSettings = config.GetSection("applicationSettings").Get<ApplictationSettings>();

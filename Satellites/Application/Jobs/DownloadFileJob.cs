@@ -23,7 +23,7 @@ namespace Satellites.Application.Jobs
         {
             var data = await _satelliteService.GetSettelitesData();
 
-            var jsonString = JsonSerializer.Serialize(data);
+            var jsonString = JsonSerializer.Serialize(data, new JsonSerializerOptions { WriteIndented = true });
 
             byte[] inputBytes = System.Text.Encoding.ASCII.GetBytes(jsonString);
           

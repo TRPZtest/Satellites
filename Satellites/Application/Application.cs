@@ -18,27 +18,30 @@ namespace Satellites.Application
 
         public async Task Run()
         {
-            for (int i = 0; i < Jobs.Count; i++)
+            while (true)
             {
-                Console.WriteLine($"  {i + 1}. {Jobs[i].Name}");
-            }
+                for (int i = 0; i < Jobs.Count; i++)
+                {
+                    Console.WriteLine($"  {i + 1}. {Jobs[i].Name}");
+                }
 
-            int cursorTop = Console.CursorTop + 1;
-            int userInput;
+                int cursorTop = Console.CursorTop + 1;
+                int userInput;
 
-            // Get the user input
-            do
-            {           
-                Console.SetCursorPosition(0, cursorTop);
-                Console.Write(new string(' ', Console.WindowWidth));
-                Console.SetCursorPosition(0, cursorTop);
+                // Get the user input
+                do
+                {
+                    Console.SetCursorPosition(0, cursorTop);
+                    Console.Write(new string(' ', Console.WindowWidth));
+                    Console.SetCursorPosition(0, cursorTop);
 
-                Console.Write($"Enter a choice (1 - {Jobs.Count}): ");
-            } while (!int.TryParse(Console.ReadLine(), out userInput) ||
-                     userInput < 1 || userInput > Jobs.Count);
+                    Console.Write($"Enter a choice (1 - {Jobs.Count}): ");
+                } while (!int.TryParse(Console.ReadLine(), out userInput) ||
+                         userInput < 1 || userInput > Jobs.Count);
 
-            // Execute the menu item function
-            await Jobs[userInput - 1].ExecuteJobAsync();
+                // Execute the menu item function
+                await Jobs[userInput - 1].ExecuteJobAsync();
+            }            
         }
     }
 }

@@ -21,21 +21,21 @@ namespace Satellites.Application.Jobs
 
         protected override async Task JobLogic()
         {
-
             var data = await _satelliteService.GetSettelitesData();
 
-            var jsonString = JsonSerializer.Serialize(data);
+            var apiJson = JsonSerializer.Serialize(data, new JsonSerializerOptions { WriteIndented = true });
+     
+            var apiDataBytes = System.Text.Encoding.ASCII.GetBytes(apiJson);
 
-            byte[] ApiDataBytes = System.Text.Encoding.ASCII.GetBytes(jsonString);
-
-            var ApiDataHash = ApiDataBytes.GetMD5();
-
+            var apiDataHash = apiDataBytes.GetMD5();
 
             var fileBytes = await File.ReadAllBytesAsync(_applicationSettings.DownloadaPath);
 
             var localFileHashSum = fileBytes.GetMD5();
 
-            _logger.LogInformation($"Local data hash: {localFileHashSum}, API data hash: {ApiDataHash}");
+            var message = localFileHashSum == apiDataHash ? "Data has not changed" : "Data has changed";
+
+            _logger.LogInformation($"Local data hash: {localFileHashSum}, API data hash: {apiDataHash}\n{message}");
         }
     }
 }

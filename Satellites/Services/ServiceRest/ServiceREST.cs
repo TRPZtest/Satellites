@@ -14,8 +14,7 @@ namespace Satellites.Services.ServiceRest
     public class ServiceREST : IDisposable
     {
         private readonly HttpClient _httpClient;
-        private readonly ILogger? _logger;    
-        int count = 0;
+        private readonly ILogger? _logger;         
 
         public ServiceREST(HttpClient httpClient) 
         {
@@ -29,9 +28,7 @@ namespace Satellites.Services.ServiceRest
         }
      
         protected async Task<T> GetAsync<T>(string url)
-        {
-            _logger?.LogInformation($"HttpGet started { count++ }");
-
+        {      
             var request = new HttpRequestMessage(HttpMethod.Get, url);
 
             var response = await _httpClient.SendAsync(request);
@@ -44,7 +41,6 @@ namespace Satellites.Services.ServiceRest
 
             return responseObj;
         }
-
 
         public void Dispose()
         {
