@@ -40,6 +40,8 @@ namespace Satellites.Services.SettelitesService
             var itemsList = new List<Member>();
 
             int pageCount = (int)Math.Ceiling((double)itemsCount / pageSize);
+
+            pageCount = 10;
            
             int batchCount = (int)Math.Ceiling((double)pageCount / batchSize);      
 
@@ -64,7 +66,7 @@ namespace Satellites.Services.SettelitesService
 
                 itemsList.AddRange(dataItems);
 
-                itemsDownloaded += dataItems.Count();
+                itemsDownloaded += batch.Count();
 
                 LogProgress(itemsDownloaded, pageCount);                
             }                                             
@@ -112,6 +114,6 @@ namespace Satellites.Services.SettelitesService
             return response;         
         }
 
-        private void LogProgress(int itemsDownloaded, int total) => _logger?.LogInformation($"{((double)itemsDownloaded / total).ToString("0.00%")} Done");
+        private void LogProgress(int itemsDownloaded, int total) => _logger?.LogInformation($"{((double)(itemsDownloaded / total)).ToString("0.00%")} Done");
     }
 }

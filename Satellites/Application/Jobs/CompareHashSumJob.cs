@@ -26,16 +26,16 @@ namespace Satellites.Application.Jobs
 
             var jsonString = JsonSerializer.Serialize(data);
 
-            byte[] freshDataBytes = System.Text.Encoding.ASCII.GetBytes(jsonString);
+            byte[] ApiDataBytes = System.Text.Encoding.ASCII.GetBytes(jsonString);
 
-            freshDataBytes.GetMD5();
+            var ApiDataHash = ApiDataBytes.GetMD5();
 
 
             var fileBytes = await File.ReadAllBytesAsync(_applicationSettings.DownloadaPath);
 
             var localFileHashSum = fileBytes.GetMD5();
 
-            _logger.LogInformation($"Local data hash: {localFileHashSum}, API data hash: {freshDataBytes}");
+            _logger.LogInformation($"Local data hash: {localFileHashSum}, API data hash: {ApiDataHash}");
         }
     }
 }

@@ -35,9 +35,9 @@ using var satelliteService = new SatellitesService(setelliteServiceOptions, new 
 
 app.Jobs.Add(new DownloadFileJob(satelliteService, "Download satellites data", applicationSettings, logger));
 
-app.Jobs.Add(new LocalSatelliteInformationCheckJob("Check locale data available", applicationSettings, logger));
+app.Jobs.Add(new LocalSatelliteInformationCheckJob("Check local data available", applicationSettings, logger));
 
-app.Jobs.Add(new CompareHashSumJob(satelliteService, "Check locale data available", applicationSettings, logger));
+app.Jobs.Add(new CompareHashSumJob(satelliteService, "Compare local and API data", applicationSettings, logger));
 
-app.Run().RunSynchronously();
+await app.Run();
 

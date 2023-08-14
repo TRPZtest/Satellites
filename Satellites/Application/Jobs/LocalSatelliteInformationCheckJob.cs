@@ -20,8 +20,8 @@ namespace Satellites.Application.Jobs
             int itemsCount = 0;
             try
             {
-                using FileStream fileStream = new FileStream(_applicationSettings.DownloadaPath, FileMode.Open);
-                var file = await JsonSerializer.DeserializeAsync<Member[]>(fileStream);
+                using FileStream fileStream = new(_applicationSettings.DownloadaPath, FileMode.Open);
+                var file = await JsonSerializer.DeserializeAsync<IEnumerable<Member>>(fileStream);
                 itemsCount = file.Count();
             }
             catch (Exception ex)
