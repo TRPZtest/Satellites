@@ -22,7 +22,7 @@ namespace Satellites.Services.SettelitesService
         public int TotalItems { get; set; }
 
         [JsonPropertyName("member")]
-        public List<Member> Member { get; set; }
+        public Member[] Member { get; set; }
 
         [JsonPropertyName("parameters")]
         public Parameters Parameters { get; set; }

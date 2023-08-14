@@ -12,6 +12,7 @@ using System.Net;
 using System.Security.AccessControl;
 using System.Text;
 using System.Threading.Tasks;
+using System.Threading.Tasks.Dataflow;
 using System.Web;
 
 namespace Satellites.Services.SettelitesService
@@ -29,95 +30,88 @@ namespace Satellites.Services.SettelitesService
             _logger = logger;
         }
 
-        public async Task<LinkedList<Member>> GetSettelitesData()
-        {
+        public async Task<List<Member>> GetSettelitesData()
+        {          
             int pageSize = _options.PageSize;
             int batchSize = _options.ParallelRequestsBatchSize;
-
+         
             var itemsCount = await GetItemsCount();
 
-            var itemsList = new LinkedList<Member>();
+            var itemsList = new List<Member>();
 
-            //int pageCount = (int)Math.Ceiling((double)itemsCount / pageSize);
+            int pageCount = (int)Math.Ceiling((double)itemsCount / pageSize);
+           
+            int batchCount = (int)Math.Ceiling((double)pageCount / batchSize);      
 
-            var pageCount = 327;
+            var tasks = new List<Task<Member[]>>(pageCount);
 
-            int batchCount = (int)Math.Ceiling((double)pageCount / batchSize);
-
-            _logger?.LogInformation("Downloading started");
-
-            for (int i = 1; i <= pageCount; i += batchSize)
-            {
-                if (i + batchSize > pageCount)
-                    batchSize = pageCount - i + 1;
-
-                var items = await GetPagesParalelly(i, i + batchSize - 1, 100);
-
-                _logger?.LogInformation($"{ ((double)(i + batchSize - 1) / pageCount).ToString("0.00%") } Done");                
-
-                itemsList.Concat(items);
-            }                           
-
-            return itemsList;
-        }
-
-        private async Task<Member[]> GetPagesParalelly(int pageStart, int pageEnd, int pageSize)
-        {
-            var pageCount = pageEnd - pageStart + 1;
-
-            var tasks = new List<Task<IEnumerable<Member>>>(pageCount);
-
-            for (int i = pageStart; i <= pageEnd; i++)
+            for (int i = 1; i <= pageCount; i++)
             {
                 tasks.Add(GetPageOfitems(i, pageSize));
             }
 
-            _logger?.LogInformation($"{tasks.Count} requests started");
+            var tasksBatches = tasks.Chunk(batchSize);
 
-            var responses = await Task.WhenAll(tasks);
+            int itemsDownloaded = 0;
 
-            var dataItems = responses.SelectMany(x => x);
+            _logger?.LogInformation("Downloading started");
 
-            return dataItems.ToArray();
+            foreach (var batch in tasksBatches)
+            {
+                var responses = await Task.WhenAll(tasks);
+
+                var dataItems = responses.SelectMany(x => x);
+
+                itemsList.AddRange(dataItems);
+
+                itemsDownloaded += dataItems.Count();
+
+                LogProgress(itemsDownloaded, pageCount);                
+            }                                             
+
+            return itemsList;
         }
 
-        private async Task<IEnumerable<Member>> GetPageOfitems(int pageNumber, int pageSize)
+        private async Task<Member[]> GetPageOfitems(int pageNumber, int pageSize)
         {
             var queryParameters = new NameValueCollection();
             queryParameters.Add("page-size", pageSize.ToString());
             queryParameters.Add("page", pageNumber.ToString());
 
-            var response = await GetAsyncDecorator<SetelliteServiceResponse>(_url, queryParameters);
-
-            return response.ResponseDto.Member;
+            for (int i = 0; i < _options.RequestRetriesNumber; i ++)
+            {
+                try
+                {
+                    var response = await GetAsyncDecorator(_url, queryParameters);
+                    return response.Member;
+                }
+                catch (Exception ex)
+                {
+                    _logger?.LogWarning(ex.Message);
+                }
+                Thread.Sleep((_options.RequestRetryDelay));
+            }
+            
+            throw new Exception("Attempts to resend the request have been exhausted.");
         }
 
-        private async Task<int> GetItemsCount()
+        public async Task<int> GetItemsCount()
         {
             var queryParameters = new NameValueCollection();
             queryParameters.Add("page-size", "1");           
 
-            var response = await GetAsyncDecorator<SetelliteServiceResponse>(_url, queryParameters);
-            return response.ResponseDto.TotalItems;
+            var response = await GetAsyncDecorator(_url, queryParameters);
+            
+            return response.TotalItems;
         }
 
-        private void checkResponse(HttpStatusCode statusCode)
-        {
-            if (statusCode == HttpStatusCode.TooManyRequests) 
-            {
-                var errorMessage = $"{statusCode}, please try later!";
-                _logger?.LogError(errorMessage);
-                throw new Exception(errorMessage);
-            }
+        private async Task<SetelliteServiceResponse> GetAsyncDecorator(string url, NameValueCollection queryParameters)
+        {            
+            var response = await GetAsync<SetelliteServiceResponse>(url + queryParameters.ToQueryString(true));
+
+            return response;         
         }
 
-        protected async Task<ResponseWrapper<T>> GetAsyncDecorator<T>(string url, NameValueCollection queryParameters)
-        {
-            var response = await GetAsync<T>(url + queryParameters.ToQueryString(true));
-
-            checkResponse(response.StatusCode);
-
-            return response;
-        }
+        private void LogProgress(int itemsDownloaded, int total) => _logger?.LogInformation($"{((double)itemsDownloaded / total).ToString("0.00%")} Done");
     }
 }

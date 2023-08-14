@@ -26,37 +26,29 @@ namespace Satellites.Services.ServiceRest
         {
             _httpClient = httpClient;
             _logger = logger;
-
         }
      
-        protected async Task<ResponseWrapper<T>> GetAsync<T>(string url)
-        {               
+        protected async Task<T> GetAsync<T>(string url)
+        {
+            _logger?.LogInformation($"HttpGet started { count++ }");
+
             var request = new HttpRequestMessage(HttpMethod.Get, url);
 
-            var response = await _httpClient.SendAsync(request);          
+            var response = await _httpClient.SendAsync(request);
+
+            response.EnsureSuccessStatusCode();
 
             var contentString = await response.Content.ReadAsStringAsync();
 
-            var  responseObj = new ResponseWrapper<T>() 
-            { 
-                ResponseDto = 
-                JsonSerializer.Deserialize<T>(contentString), 
-                IsSuccesStatusCode = response.IsSuccessStatusCode,
-                StatusCode = response.StatusCode
-            };
+            var  responseObj = JsonSerializer.Deserialize<T>(contentString);
 
             return responseObj;
         }
 
+
         public void Dispose()
         {
             _httpClient.Dispose();
-        }
-
-        private void checkHttpCode(HttpResponseMessage responseMessage)
-        {
-            if (!responseMessage.IsSuccessStatusCode)
-                throw new Exception($"Http code { responseMessage.StatusCode }");
-        }
+        }      
     }
 }

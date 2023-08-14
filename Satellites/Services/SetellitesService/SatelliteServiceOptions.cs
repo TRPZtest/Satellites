@@ -11,5 +11,7 @@ namespace Satellites.Services.SetellitesService
         public string Url { get; set; }
         public int PageSize { get; set; }
         public int ParallelRequestsBatchSize { get; set; }
+        public int RequestRetriesNumber {  get; set; }
+        public int RequestRetryDelay { get; set;  }
     }
 }

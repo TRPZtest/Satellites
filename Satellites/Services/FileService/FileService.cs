@@ -8,6 +8,9 @@ namespace Satellites.Services.FileService
 {
     public  class FileService
     {
+        public async Task WriteFile(string fileName, Stream stream)
+        {
 
+        }
     }
 }
