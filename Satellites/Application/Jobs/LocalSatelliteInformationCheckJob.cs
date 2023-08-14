@@ -22,13 +22,13 @@ namespace Satellites.Application.Jobs
             {
                 using FileStream fileStream = new(_applicationSettings.DownloadaPath, FileMode.Open);
                 var file = await JsonSerializer.DeserializeAsync<IEnumerable<Member>>(fileStream);
-                itemsCount = file.Count();
+                     _logger.LogInformation($"Local data avaible, {file.Count()} data records saved localy.");
             }
             catch (Exception ex)
             {            
                 _logger.LogError("Local data reading error:\n" + ex.Message);                   
             }
-            _logger.LogInformation($"Local data avaible, {itemsCount} data records saved localy.");
+       
         }
     }
 }
